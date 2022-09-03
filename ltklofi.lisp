@@ -6,15 +6,20 @@
 
 (in-package :lofi)
 
-(defun run-pcman ()
-  (uiop:run-program "/bin/pcmanfm"))
+(defun run ()
+  (uiop:run-program "/bin/brave-browser-stable"))
 
 (defun run ()
   (with-ltk ()
     (let*
-        ((text "(run-pcman)")
-           (b (make-instance 'entry
-                             :text text
+        ((f (make-instance 'frame
+                           :width 100
+                           :height 50))
+         (b (make-instance 'entry
+                             :text ""
                              :width 100))) 
-      (princ (eval (read-from-string (text b))))
+      (bind b "<KeyPress-Return>"
+            (lambda (evt)
+              (eval (read-from-string (text b)))))
+      (pack f)
       (pack b))))
