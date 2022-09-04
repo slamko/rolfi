@@ -1,25 +1,38 @@
+(load "~/quicklisp/setup.lisp")
+
 (ql:quickload "ltk")
 
-(defpackage lofi
+(defpackage rolfi
   (:use :cl
         :ltk))
 
-(in-package :lofi)
+(in-package :rolfi)
 
-(defun run ()
-  (uiop:run-program "/bin/brave-browser-stable"))
+(defun launch-program (str)
+  (uiop:launch-program
+   (uiop:split-string str)))
 
+(defun eval-entry (str)
+  (eval (read-from-string str)))
+  
 (defun run ()
   (with-ltk ()
     (let*
-        ((f (make-instance 'frame
-                           :width 100
-                           :height 50))
-         (b (make-instance 'entry
+        ((f (make-instance 'frame))
+         (entry (make-instance 'entry
                              :text ""
-                             :width 100))) 
-      (bind b "<KeyPress-Return>"
+                             :master f
+                             :width 60
+                             :takefocus t))) 
+      (bind entry "<KeyPress-Return>"
             (lambda (evt)
-              (eval (read-from-string (text b)))))
+              (launch-program (text entry))
+              (uiop:quit)))
       (pack f)
-      (pack b))))
+      (pack entry)
+      (ltk:configure f
+                     :borderwidth 3
+                     :relief
+                     :sunken))))
+
+(run)
