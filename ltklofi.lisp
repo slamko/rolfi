@@ -8,6 +8,9 @@
 
 (in-package :rolfi)
 
+(defun get-menu-selection (menu)
+  (car (listbox-get-selection menu)))
+
 (defun get-bin-directories ()
   (let ((path-var (uiop:getenv "PATH")))
 	(when path-var
@@ -30,10 +33,9 @@
 		(if (not (member bin-name unique-bin-names :test 'string=))
 			(setq unique-bin-names (append (list bin-name) unique-bin-names))))))
 
-(unique-bins '("some" "some"))
-
 (defun app-launcher (entry menu)
-  (let ((app-list (unique-bins (all-bins (get-bin-directories)))))
+  (let* ((app-list (unique-bins (all-bins (get-bin-directories))))
+         (initial-app-list app-list))
     (listbox-append menu app-list)
     (listbox-select menu 0)
     
@@ -43,21 +45,32 @@
             (listbox-append
              menu
              (setq app-list
-                   (remove nil
+                   (if (= (length (text entry)) 0)
+                       initial-app-list
+                       (remove nil
                            (mapcar
                             (lambda (str)
                               (when
                                   (search
                                    (text entry) str)
                           str))
-                            app-list))))
+                            initial-app-list)))))
 
             (listbox-select menu 0)))
+
+    (bind entry "<KeyPress-Down>"
+          (lambda (evt)
+            (focus menu)))
+ 
+    (bind menu "<KeyPress-Up>"
+          (lambda (evt)
+            (when (= (get-menu-selection menu) 0)
+              (focus entry))))
     
     (bind entry "<KeyPress-Return>"
           (lambda (evt)
             (uiop:launch-program
-             (uiop:split-string (nth (car (listbox-get-selection menu)) app-list)))
+             (uiop:split-string (nth (get-menu-selection menu) app-list)))
             (uiop:quit)))))
   
 (defun lisp-eval (entry menu)
