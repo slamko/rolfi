@@ -8,8 +8,32 @@
 
 (in-package :rolfi)
 
+(defun get-bin-directories ()
+  (let ((path-var (uiop:getenv "PATH")))
+	(when path-var
+	  (mapcar
+       (lambda (var) (concatenate 'string var "/"))
+       (uiop:split-string path-var :separator ":")))))
+
+(defun all-bins (bin-directories)
+  (let (all-bin-names)
+	(dolist (bin-path bin-directories all-bin-names)
+	  (if t
+		  (setq all-bin-names
+                (append
+                 (mapcar 'pathname-name
+                         (uiop:directory-files bin-path)) all-bin-names))))))
+
+(defun unique-bins (bins)
+  (let (unique-bin-names)
+	(dolist (bin-name bins unique-bin-names)
+		(if (not (member bin-name unique-bin-names :test 'string=))
+			(setq unique-bin-names (append (list bin-name) unique-bin-names))))))
+
+(unique-bins '("some" "some"))
+
 (defun app-launcher (entry menu)
-  (let ((app-list '("pcmanfm" "alacritty")))
+  (let ((app-list (unique-bins (all-bins (get-bin-directories)))))
     (listbox-append menu app-list)
     (listbox-select menu 0)
     
