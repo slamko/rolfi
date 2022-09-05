@@ -10,21 +10,33 @@
 
 (defun app-launcher (entry menu)
   (let ((app-list '("pcmanfm" "alacritty")))
-    (listbox-append menu ')
+    (listbox-append menu app-list)
+    (listbox-select menu 0)
     
     (bind entry "<KeyPress>"
           (lambda (evt)
-            (listbox-select menu
-                            (remove nil
-                                    (mapcar (lambda (str) (search (text entry) str)) app-list)))))
+            (listbox-clear menu)
+            (listbox-append
+             menu
+             (setq app-list
+                   (remove nil
+                           (mapcar
+                            (lambda (str)
+                              (when
+                                  (search
+                                   (text entry) str)
+                          str))
+                            app-list))))
+
+            (listbox-select menu 0)))
     
     (bind entry "<KeyPress-Return>"
           (lambda (evt)
             (uiop:launch-program
-             (uiop:split-string (text entry)))
-            (uiop:quit))))
+             (uiop:split-string (nth (car (listbox-get-selection menu)) app-list)))
+            (uiop:quit)))))
   
-  (defun lisp-eval (entry menu)
+(defun lisp-eval (entry menu)
   (eval (read-from-string (text entry))))
   
 (defun run ()
