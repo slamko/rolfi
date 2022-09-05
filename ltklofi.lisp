@@ -8,12 +8,24 @@
 
 (in-package :rolfi)
 
-(defun launch-program (str)
-  (uiop:launch-program
-   (uiop:split-string str)))
-
-(defun eval-entry (str)
-  (eval (read-from-string str)))
+(defun app-launcher (entry menu)
+  (let ((app-list '("pcmanfm" "alacritty")))
+    (listbox-append menu ')
+    
+    (bind entry "<KeyPress>"
+          (lambda (evt)
+            (listbox-select menu
+                            (remove nil
+                                    (mapcar (lambda (str) (search (text entry) str)) app-list)))))
+    
+    (bind entry "<KeyPress-Return>"
+          (lambda (evt)
+            (uiop:launch-program
+             (uiop:split-string (text entry)))
+            (uiop:quit))))
+  
+  (defun lisp-eval (entry menu)
+  (eval (read-from-string (text entry))))
   
 (defun run ()
   (with-ltk ()
@@ -23,16 +35,19 @@
                              :text ""
                              :master f
                              :width 60
-                             :takefocus t))) 
-      (bind entry "<KeyPress-Return>"
-            (lambda (evt)
-              (launch-program (text entry))
-              (uiop:quit)))
+                             :takefocus t))
+         (menu (make-instance 'listbox
+                              :master f
+                              :width 60))) 
       (pack f)
       (pack entry)
+      (pack menu)
+      (focus entry)
       (ltk:configure f
                      :borderwidth 3
+                     :height 50
                      :relief
-                     :sunken))))
+                     :sunken)
+      (app-launcher entry menu))))
 
 (run)
