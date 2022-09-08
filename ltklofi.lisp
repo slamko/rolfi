@@ -48,27 +48,18 @@
           (get-best-matches str match-list)))
     
     (append
-     best-match-list
-     (mapcan
-      (lambda (list-str)
-        (when (not (member list-str best-match-list))
-          (list list-str)))
-      match-list))))
-     
-(defun choose-match-names (str init-list)
-  (mapcan
-   (lambda (list-str)
-     (when (search str list-str)
-       (list list-str)))
-   init-list))
+     (reverse best-match-list)
+     (reverse
+      (mapcan
+       (lambda (list-str)
+         (when (and
+                (not (member list-str best-match-list))
+                (search str list-str))
+           (list list-str)))
+       match-list)))))
 
-(defun app-launcher (entry menu)
-  (let* ((app-list (unique-bins (all-bins (get-bin-directories))))
-         (initial-app-list app-list))
-    (listbox-append menu app-list)
-    (listbox-select menu 0)
-    
-    (bind entry "<KeyPress>"
+(defun bind-entry-events (menu entry app-list initial-app-list)
+  (bind entry "<KeyPress>"
           (lambda (evt)
             (listbox-clear menu)
             (listbox-append
@@ -84,12 +75,42 @@
             (focus menu)
             (listbox-select menu 0)))
     
-    (bind menu "<KeyPress-K>"
-          (lambda (evt)
-            (configure entry
-                       :text "ok")
-            (pack entry)))
 
+    (bind entry "<KeyPress-Return>"
+          (lambda (evt)
+            (uiop:launch-program
+             (uiop:split-string (nth (get-menu-selection menu) app-list)))
+            (uiop:quit))))
+
+(defun app-launcher (entry menu f)
+  (let* ((app-list (unique-bins (all-bins (get-bin-directories))))
+         (initial-app-list app-list))
+    (listbox-append menu app-list)
+    (listbox-select menu 0)
+
+    (bind-entry-events menu entry app-list initial-app-list)
+    
+    (bind menu "<space>"
+          (lambda (evt)
+            (ltk:pack-forget menu)
+            (ltk:pack-forget entry)
+            (listbox-append menu app-list)
+            
+            (setq entry (make-instance 'entry
+                                       :master f
+                                       :text (nth (get-menu-selection menu) app-list)
+                                       :width 60))
+
+            (pack entry)
+            (pack menu)
+            (ltk:configure f
+                     :borderwidth 3
+                     :height 50
+                     :relief
+                     :sunken)
+            (bind-entry-events menu entry app-list initial-app-list)
+            (focus entry)))
+            
     (bind menu "<KeyPress-Up>"
           (lambda (evt)
             (when (= (get-menu-selection menu) 0)
@@ -99,14 +120,8 @@
           (lambda (evt)
             (uiop:launch-program
              (uiop:split-string (nth (get-menu-selection menu) app-list)))
-            (uiop:quit)))
-
-    (bind entry "<KeyPress-Return>"
-          (lambda (evt)
-            (uiop:launch-program
-             (uiop:split-string (nth (get-menu-selection menu) app-list)))
             (uiop:quit)))))
-  
+
 (defun lisp-eval (entry menu)
   (eval (read-from-string (text entry))))
   
@@ -131,6 +146,6 @@
                      :height 50
                      :relief
                      :sunken)
-      (app-launcher entry menu))))
+      (app-launcher entry menu f))))
 
 (run)
