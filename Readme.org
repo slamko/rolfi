@@ -1,0 +1,12 @@
+* An extensible, customizable, free/libre application launcher - and more.
+
+At its core is a GUI - Common Lisp interpreter with extensions to support application launching.
+
+** Build
+First make sure to install [[http://www.sbcl.org/][sbcl]] and [[https://www.quicklisp.org/beta/][Quicklisp]]
+
+#+begin_src sh
+git clone https://github.com/slamko/rolfi
+cd rolfi
+sbcl < buildrolfi.lisp
+#+end_src
