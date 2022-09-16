@@ -80,7 +80,7 @@
   (bind entry "<KeyPress-Return>"
         (lambda (evt)
           (funcall eval-fun
-                   (uiop:split-string (nth (get-menu-selection) app-list))) 
+           (uiop:split-string (nth (get-menu-selection menu) app-list)))
           (uiop:quit))))
 
 (defun autocomplete-selected-entry (menu entry f initial-app-list eval-fun)
@@ -107,7 +107,7 @@
     (bind-entry-events menu entry initial-app-list eval-fun)
     (focus entry)))
 
-(defun choose-from-list (entry menu f entry-list treater)
+(defun choose-list-entry (entry menu f entry-list eval-fun)
   (let (initial-app-list)
     (setq app-list entry-list)
     (setq initial-app-list app-list)
@@ -115,13 +115,12 @@
     (listbox-append menu app-list)
     (listbox-select menu 0)
 
-    (bind-entry-events menu entry initial-app-list treater)
+    (bind-entry-events menu entry initial-app-list eval-fun)
     
     (bind menu "<space>"
           (lambda (evt)
-            (autocomplete-selected-entry
-             menu entry f initial-app-list treater)))
-
+            (autocomplete-selected-entry menu entry f initial-app-list eval-fun)))
+            
     (bind menu "<KeyPress-Up>"
           (lambda (evt)
             (when (= (get-menu-selection menu) 0)
@@ -129,15 +128,29 @@
     
     (bind menu "<KeyPress-Return>"
           (lambda (evt)
-            (funcall treater
-                     (uiop:split-string (nth (get-menu-selection) app-list)))
+            (funcall eval-fun
+             (uiop:split-string (nth (get-menu-selection menu) app-list)))
             (uiop:quit)))))
 
 (defun run-entry (entry)
   (uiop:launch-program entry))
 
+(defun power-control (ent menu f)
+  (choose-list-entry
+   ent
+   menu
+   f
+   '("sleep" "shutdown" "reboot")
+   (lambda (entry)
+     (cond ((eql entry "sleep")
+            (uiop:launch-program "loginctl suspend"))
+           ((eql entry "shutdown")
+            (uiop:launch-program "loginctl poweroff"))
+           ((eql entry "reboot")
+            (uiop:launch-program "loginctl reboot"))))))
+
 (defun app-launcher (entry menu f)
-  (choose-from-list
+  (choose-list-entry
    entry
    menu
    f
@@ -147,7 +160,7 @@
 (defun lisp-eval (entry menu)
   (eval (read-from-string (text entry))))
   
-(defun run (command)
+(defun run ()
   (with-ltk ()
     (let*
         ((f (make-instance 'frame))
@@ -169,6 +182,5 @@
                      :height 50
                      :relief
                      :sunken)
-      (funcall (intern command) entry menu f))))
+      (power-control entry menu f))))
 
-(run (car uiop:*command-line-arguments*))
