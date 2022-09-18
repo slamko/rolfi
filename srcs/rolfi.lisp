@@ -1,7 +1,7 @@
 (defpackage rolfi
   (:use :cl
    :ltk)
-  (:export #:run))
+  (:export #:main))
 
 (in-package :rolfi)
 
@@ -71,6 +71,10 @@
 (defun bind-entry-events (menu entry initial-app-list eval-fun)
   (bind entry "<KeyPress>"
         (lambda (evt) (entry-update-list menu entry initial-app-list)))
+ 
+  (bind entry "<KeyPress-Escape>"
+        (lambda (evt)
+          (uiop:quit)))
 
   (bind entry "<KeyPress-Down>"
         (lambda (evt)
@@ -80,7 +84,7 @@
   (bind entry "<KeyPress-Return>"
         (lambda (evt)
           (funcall eval-fun
-           (uiop:split-string (nth (get-menu-selection menu) app-list)))
+                   (nth (get-menu-selection menu) app-list))
           (uiop:quit))))
 
 (defun autocomplete-selected-entry (menu entry f initial-app-list eval-fun)
@@ -120,6 +124,9 @@
     (bind menu "<space>"
           (lambda (evt)
             (autocomplete-selected-entry menu entry f initial-app-list eval-fun)))
+       (bind menu "<KeyPress-Escape>"
+          (lambda (evt)
+            (uiop:quit)))
             
     (bind menu "<KeyPress-Up>"
           (lambda (evt)
@@ -128,8 +135,7 @@
     
     (bind menu "<KeyPress-Return>"
           (lambda (evt)
-            (funcall eval-fun
-             (uiop:split-string (nth (get-menu-selection menu) app-list)))
+            (funcall eval-fun (nth (get-menu-selection menu) app-list))
             (uiop:quit)))))
 
 (defun run-entry (entry)
@@ -142,11 +148,11 @@
    f
    '("sleep" "shutdown" "reboot")
    (lambda (entry)
-     (cond ((eql entry "sleep")
+     (cond ((string= entry "sleep")
             (uiop:launch-program "loginctl suspend"))
-           ((eql entry "shutdown")
+           ((string= entry "shutdown")
             (uiop:launch-program "loginctl poweroff"))
-           ((eql entry "reboot")
+           ((string= entry "reboot")
             (uiop:launch-program "loginctl reboot"))))))
 
 (defun app-launcher (entry menu f)
@@ -157,10 +163,10 @@
    (unique-bins (all-bins (get-bin-directories)))
    'run-entry))
 
-(defun lisp-eval (entry menu)
+(defun lisp-eval (entry menu f)
   (eval (read-from-string (text entry))))
   
-(defun run ()
+(defun run (command)
   (with-ltk ()
     (let*
         ((f (make-instance 'frame))
@@ -182,5 +188,12 @@
                      :height 50
                      :relief
                      :sunken)
-      (power-control entry menu f))))
+      (funcall command entry menu f))))
+
+(defun main ()
+  (run
+     (read-from-string
+      (or
+       (concatenate 'string "rolfi::" (car (uiop:command-line-arguments)))
+        "app-launcher"))))
 
