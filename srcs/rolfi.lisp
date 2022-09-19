@@ -23,8 +23,9 @@
 	  (if t
 		  (setq all-bin-names
                 (append
+                 all-bin-names
                  (mapcar 'pathname-name
-                         (uiop:directory-files bin-path)) all-bin-names))))))
+                         (uiop:directory-files bin-path))))))))
 
 (defun unique-bins (bins)
   (let (unique-bin-names)
@@ -45,17 +46,15 @@
 (defun sort-best-match (str match-list)
   (let ((best-match-list
           (get-best-matches str match-list)))
-    
     (append
-     (reverse best-match-list)
-     (reverse
-      (mapcan
-       (lambda (list-str)
-         (when (and
-                (not (member list-str best-match-list))
-                (search str list-str))
-           (list list-str)))
-       match-list)))))
+     best-match-list
+     (mapcan
+      (lambda (list-str)
+        (when (and
+               (not (member list-str best-match-list))
+               (search str list-str))
+          (list list-str)))
+      match-list))))
 
 (defun entry-update-list (menu entry initial-app-list)
   (progn
@@ -68,9 +67,21 @@
                (sort-best-match (text entry) initial-app-list))))
     (listbox-select menu 0)))
 
-(defun bind-entry-events (menu entry initial-app-list eval-fun)
+(defun run-entry-fun (fun entry-id entry-widget)
+  (progn
+    (funcall fun
+             (if entry-id
+                 (nth entry-id app-list)
+                 (text entry-widget))))
+  (uiop:quit))
+
+(defun bind-entry-events (menu entry f initial-app-list eval-fun)
   (bind entry "<KeyPress>"
         (lambda (evt) (entry-update-list menu entry initial-app-list)))
+
+  (bind entry "<KeyPress-Tab>"
+    (lambda (evt)
+      (autocomplete-selected-entry menu entry f initial-app-list eval-fun)))
  
   (bind entry "<KeyPress-Escape>"
         (lambda (evt)
@@ -78,14 +89,12 @@
 
   (bind entry "<KeyPress-Down>"
         (lambda (evt)
-          (focus menu)
-          (listbox-select menu 0)))
+          (listbox-select menu 0)
+          (focus menu)))
 
   (bind entry "<KeyPress-Return>"
         (lambda (evt)
-          (funcall eval-fun
-                   (nth (get-menu-selection menu) app-list))
-          (uiop:quit))))
+         (run-entry-fun eval-fun (get-menu-selection menu) entry))))
 
 (defun autocomplete-selected-entry (menu entry f initial-app-list eval-fun)
   (progn
@@ -108,7 +117,7 @@
                    :relief
                    :sunken)
     
-    (bind-entry-events menu entry initial-app-list eval-fun)
+    (bind-entry-events menu entry f initial-app-list eval-fun)
     (focus entry)))
 
 (defun choose-list-entry (entry menu f entry-list eval-fun)
@@ -119,24 +128,40 @@
     (listbox-append menu app-list)
     (listbox-select menu 0)
 
-    (bind-entry-events menu entry initial-app-list eval-fun)
+    (bind-entry-events menu entry f initial-app-list eval-fun)
     
     (bind menu "<space>"
           (lambda (evt)
             (autocomplete-selected-entry menu entry f initial-app-list eval-fun)))
-       (bind menu "<KeyPress-Escape>"
+    
+    (bind menu "<KeyPress-Escape>"
           (lambda (evt)
             (uiop:quit)))
+
+    (bind menu "<KeyPress-K>"
+          (lambda (evt)
+            (listbox-select menu (+ (get-menu-selection menu) 1))))
+    
+    (bind menu "<KeyPress-J>"
+          (lambda (evt)
+            (listbox-select menu (- (get-menu-selection menu) 1))))
             
     (bind menu "<KeyPress-Up>"
           (lambda (evt)
             (when (= (get-menu-selection menu) 0)
               (focus entry))))
+
+    (bind menu "<KeyPress-Down>"
+      (lambda (evt)
+        (when
+            (=
+             (get-menu-selection menu)
+             (- (length app-list) 1))
+          (focus entry))))
     
     (bind menu "<KeyPress-Return>"
           (lambda (evt)
-            (funcall eval-fun (nth (get-menu-selection menu) app-list))
-            (uiop:quit)))))
+           (run-entry-fun eval-fun (get-menu-selection menu) entry)))))
 
 (defun run-entry (entry)
   (uiop:launch-program entry))
@@ -160,7 +185,7 @@
    entry
    menu
    f
-   (unique-bins (all-bins (get-bin-directories)))
+   (remove-duplicates (all-bins (get-bin-directories)) :test #'string=)
    'run-entry))
 
 (defun lisp-eval (entry menu f)
@@ -181,19 +206,21 @@
       (pack entry)
       (pack menu)
       (focus entry)
+
       (configure menu :background 'gray)
       (configure entry :background 'gray)
+
       (ltk:configure f
                      :borderwidth 3
                      :height 50
                      :relief
                      :sunken)
+      (pack f)
       (funcall command entry menu f))))
 
 (defun main ()
   (run
      (read-from-string
-      (or
-       (concatenate 'string "rolfi::" (car (uiop:command-line-arguments)))
-        "app-launcher"))))
+      (concatenate 'string "rolfi::"
+                   (or (car (uiop:command-line-arguments)) "app-launcher")))))
 
