@@ -1,7 +1,10 @@
 (defpackage rolfi
-  (:use :cl
+  (:use
+   :cl
    :ltk)
-  (:export #:main))
+  (:export
+   #:main
+   #:choose-list-entry))
 
 (in-package :rolfi)
 
@@ -9,30 +12,6 @@
 
 (defun get-menu-selection (menu)
   (car (listbox-get-selection menu)))
-
-(defun get-bin-directories ()
-  (let ((path-var (uiop:getenv "PATH")))
-	(when path-var
-	  (mapcar
-       (lambda (var) (concatenate 'string var "/"))
-       (uiop:split-string path-var :separator ":")))))
-
-(defun all-bins (bin-directories)
-  (let (all-bin-names)
-	(dolist (bin-path bin-directories all-bin-names)
-	  (if t
-		  (setq all-bin-names
-                (append
-                 all-bin-names
-                 (mapcar 'pathname-name
-                         (uiop:directory-files bin-path))))))))
-
-(defun unique-bins (bins)
-  (let (unique-bin-names)
-	(dolist (bin-name bins unique-bin-names)
-		(if (not (member bin-name unique-bin-names :test 'string=))
-			(setq unique-bin-names
-                  (cons bin-name unique-bin-names))))))
 
 (defun get-best-matches (str match-list)
   (mapcan
@@ -132,7 +111,8 @@
     
     (bind menu "<space>"
           (lambda (evt)
-            (autocomplete-selected-entry menu entry f initial-app-list eval-fun)))
+            (autocomplete-selected-entry
+             menu entry f initial-app-list eval-fun)))
     
     (bind menu "<KeyPress-Escape>"
           (lambda (evt)
@@ -163,33 +143,11 @@
           (lambda (evt)
            (run-entry-fun eval-fun (get-menu-selection menu) entry)))))
 
-(defun run-entry (entry)
-  (uiop:launch-program entry))
-
-(defun power-control (ent menu f)
-  (choose-list-entry
-   ent
-   menu
-   f
-   '("sleep" "shutdown" "reboot")
-   (lambda (entry)
-     (cond ((string= entry "sleep")
-            (uiop:launch-program "loginctl suspend"))
-           ((string= entry "shutdown")
-            (uiop:launch-program "loginctl poweroff"))
-           ((string= entry "reboot")
-            (uiop:launch-program "loginctl reboot"))))))
-
-(defun app-launcher (entry menu f)
-  (choose-list-entry
-   entry
-   menu
-   f
-   (remove-duplicates (all-bins (get-bin-directories)) :test #'string=)
-   'run-entry))
-
 (defun lisp-eval (entry menu f)
-  (eval (read-from-string (text entry))))
+  (bind menu "<KeyPress-Return>"
+        (lambda (evt)
+          (eval (read-from-string (text entry)))
+          (uiop:quit))))
   
 (defun run (command)
   (with-ltk ()
@@ -197,8 +155,8 @@
         ((f (make-instance 'frame))
          (entry (make-instance 'entry
                              :master f
-                             :width 60
-                             :takefocus t))
+                             :width 60))
+
          (menu (make-instance 'listbox
                               :master f
                               :width 60))) 
@@ -210,17 +168,11 @@
       (configure menu :background 'gray)
       (configure entry :background 'gray)
 
-      (ltk:configure f
-                     :borderwidth 3
-                     :height 50
-                     :relief
-                     :sunken)
-      (pack f)
       (funcall command entry menu f))))
 
 (defun main ()
   (run
      (read-from-string
-      (concatenate 'string "rolfi::"
-                   (or (car (uiop:command-line-arguments)) "app-launcher")))))
+      (let ((command (or (car (uiop:command-line-arguments)) "lisp-eval")))
+        (concatenate 'string "rolfi::" command)))))
 

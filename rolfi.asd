@@ -6,4 +6,6 @@
   :depends-on (:ltk :uiop)
   :components ((:module "srcs"
                 :components
-                ((:file "rolfi")))))
+                ((:file "rolfi")
+                 (:file "powerctl")
+                 (:file "applauncher")))))
