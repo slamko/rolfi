@@ -9,6 +9,7 @@
 (in-package :rolfi)
 
 (defvar app-list nil)
+(defparameter *all-commands* (list(string 'lisp-eval)))
 
 (defun get-menu-selection (menu)
   (car (listbox-get-selection menu)))
@@ -51,8 +52,7 @@
     (funcall fun
              (if entry-id
                  (nth entry-id app-list)
-                 (text entry-widget))))
-  (uiop:quit))
+                 (text entry-widget)))))
 
 (defun bind-entry-events (menu entry f initial-app-list eval-fun)
   (bind entry "<KeyPress>"
@@ -146,9 +146,20 @@
 (defun lisp-eval (entry menu f)
   (bind menu "<KeyPress-Return>"
         (lambda (evt)
-          (eval (read-from-string (text entry)))
-          (uiop:quit))))
-  
+          (eval (read-from-string (text entry))))))
+
+(defun get-rolfi-fun (fun)
+  (concatenate 'string "rolfi::" fun))
+
+(defun run-choose-command (ent menu f)
+  (choose-list-entry
+   ent
+   menu
+   f
+   *all-commands*
+   (lambda (entry)
+     (funcall (read-from-string (get-rolfi-fun entry)) ent menu f))))
+
 (defun run (command)
   (with-ltk ()
     (let*
@@ -170,9 +181,10 @@
 
       (funcall command entry menu f))))
 
+
 (defun main ()
   (run
      (read-from-string
-      (let ((command (or (car (uiop:command-line-arguments)) "lisp-eval")))
-        (concatenate 'string "rolfi::" command)))))
+      (let ((command (or (car (uiop:command-line-arguments)) "run-choose-command")))
+        (get-rolfi-fun command)))))
 

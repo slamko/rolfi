@@ -25,7 +25,8 @@
                   (cons bin-name unique-bin-names))))))
 
 (defun run-entry (entry)
-  (uiop:launch-program entry))
+  (uiop:launch-program entry)
+  (uiop:quit))
 
 (defun app-launcher (entry menu f)
   (choose-list-entry
@@ -35,3 +36,4 @@
    (remove-duplicates (all-bins (get-bin-directories)) :test #'string=)
    'run-entry))
 
+(defparameter *all-commands* (cons (string 'app-launcher) *all-commands*))

@@ -12,5 +12,8 @@
            ((string= entry "shutdown")
             (uiop:launch-program "loginctl poweroff"))
            ((string= entry "reboot")
-            (uiop:launch-program "loginctl reboot"))))))
+            (uiop:launch-program "loginctl reboot")))
+     (uiop:quit))))
+
+(defparameter *all-commands* (cons (string 'powerctl) *all-commands*))
 
