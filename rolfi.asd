@@ -8,4 +8,5 @@
                 :components
                 ((:file "rolfi")
                  (:file "powerctl")
+                 (:file "pass")
                  (:file "applauncher")))))

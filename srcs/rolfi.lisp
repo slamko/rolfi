@@ -19,7 +19,7 @@
    (lambda (list-str)
      (when (and
             (<= (length str) (length list-str))
-            (string= str (subseq list-str 0 (length str))) str)
+            (string-equal str (subseq list-str 0 (length str))) str)
        (list list-str)))
    match-list))
 
@@ -32,7 +32,7 @@
       (lambda (list-str)
         (when (and
                (not (member list-str best-match-list))
-               (search str list-str))
+               (search str list-str :test #'char-equal))
           (list list-str)))
       match-list))))
 
@@ -170,7 +170,7 @@
 
          (menu (make-instance 'listbox
                               :master f
-                              :width 60))) 
+                              :width 60)))
       (pack f)
       (pack entry)
       (pack menu)
