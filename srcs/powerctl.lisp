@@ -6,7 +6,7 @@
    menu
    f
    '("sleep" "shutdown" "reboot")
-   (lambda (entry)
+   (lambda (entry &rest args)
      (cond ((string= entry "sleep")
             (uiop:launch-program "loginctl suspend"))
            ((string= entry "shutdown")

@@ -24,7 +24,7 @@
 			(setq unique-bin-names
                   (cons bin-name unique-bin-names))))))
 
-(defun run-entry (entry)
+(defun run-entry (entry &rest args)
   (uiop:launch-program entry)
   (uiop:quit))
 

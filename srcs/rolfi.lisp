@@ -47,20 +47,22 @@
                (sort-best-match (text entry) initial-app-list))))
     (listbox-select menu 0)))
 
-(defun run-entry-fun (fun entry-id entry-widget)
+(defun run-entry-fun (fun entry-id entry-widget fun-args)
   (progn
-    (funcall fun
-             (if entry-id
-                 (nth entry-id app-list)
-                 (text entry-widget)))))
+    (apply fun
+           (append
+            (if entry-id
+                (nth entry-id app-list)
+                (text entry-widget))
+            fun-args))))
 
-(defun bind-entry-events (menu entry f initial-app-list eval-fun)
+(defun bind-entry-events (menu entry f initial-app-list eval-fun fun-args)
   (bind entry "<KeyPress>"
         (lambda (evt) (entry-update-list menu entry initial-app-list)))
 
   (bind entry "<KeyPress-Tab>"
     (lambda (evt)
-      (autocomplete-selected-entry menu entry f initial-app-list eval-fun)))
+      (autocomplete-selected-entry menu entry f initial-app-list eval-fun fun-args)))
  
   (bind entry "<KeyPress-Escape>"
         (lambda (evt)
@@ -73,9 +75,9 @@
 
   (bind entry "<KeyPress-Return>"
         (lambda (evt)
-         (run-entry-fun eval-fun (get-menu-selection menu) entry))))
+         (run-entry-fun eval-fun (get-menu-selection menu) entry fun-args))))
 
-(defun autocomplete-selected-entry (menu entry f initial-app-list eval-fun)
+(defun autocomplete-selected-entry (menu entry f initial-app-list eval-fun fun-args)
   (progn
     (ltk:pack-forget entry)
     (listbox-select menu 0)
@@ -96,10 +98,10 @@
                    :relief
                    :sunken)
     
-    (bind-entry-events menu entry f initial-app-list eval-fun)
+    (bind-entry-events menu entry f initial-app-list eval-fun fun-args)
     (focus entry)))
 
-(defun choose-list-entry (entry menu f entry-list eval-fun)
+(defun choose-list-entry (entry menu f entry-list eval-fun &rest fun-args)
   (let (initial-app-list)
     (setq app-list entry-list)
     (setq initial-app-list app-list)
@@ -107,12 +109,12 @@
     (listbox-append menu app-list)
     (listbox-select menu 0)
 
-    (bind-entry-events menu entry f initial-app-list eval-fun)
+    (bind-entry-events menu entry f initial-app-list eval-fun args)
     
     (bind menu "<space>"
           (lambda (evt)
             (autocomplete-selected-entry
-             menu entry f initial-app-list eval-fun)))
+             menu entry f initial-app-list eval-fun fun-args)))
     
     (bind menu "<KeyPress-Escape>"
           (lambda (evt)
@@ -141,9 +143,9 @@
     
     (bind menu "<KeyPress-Return>"
           (lambda (evt)
-           (run-entry-fun eval-fun (get-menu-selection menu) entry)))))
+           (run-entry-fun eval-fun (get-menu-selection menu) entry fun-args)))))
 
-(defun lisp-eval (entry menu f)
+(defun lisp-eval (entry menu f &rest args)
   (bind menu "<KeyPress-Return>"
         (lambda (evt)
           (eval (read-from-string (text entry))))))

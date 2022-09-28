@@ -43,14 +43,16 @@
   (get-files-in-directories "~/.password-store/"))
 
 (defun pass (ent menu f)
-  (choose-list-entry
-   ent
-   menu
-   f
-   (get-password-files)
-   (lambda (entry)
-     (uiop:launch-program
-      (concatenate 'string "alacritty -e pass -c "
-                   ())))))
+  (let ((pass-files (get-password-files)))
+    (choose-list-entry
+     ent
+     menu
+     f
+     pass-files
+     (lambda (entry &rest args)
+       (uiop:launch-program
+        (concatenate 'string
+                     "alacritty -e pass -c "
+                     (car (member entry (car args)))))))))
 
 (defparameter *all-commands* (cons (string 'pass) *all-commands*))
