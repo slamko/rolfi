@@ -1,9 +1,9 @@
 (in-package :rolfi)
 
-(defun filter-valid-names (files)
+(defun filter-valid-names (files pathname-fun)
   (mapcan
    (lambda (name)
-     (let ((dir-name (car (last (pathname-directory name)))))
+     (let ((dir-name (funcall pathname-fun name)))
        (when dir-name
          (when (char/= (schar dir-name 0) #\.)
            (list name)))))
@@ -11,33 +11,38 @@
 
 (defvar pass-entries)
 
+(defun get-dir-files-rec (dir)
+  (append
+   (filter-valid-names
+    (uiop:directory-files dir)
+    'pathname-name)
+
+   (let (subdir-files)
+     (dolist
+         (subdir
+          (filter-valid-names
+           (uiop:subdirectories dir)
+           (lambda (path) (car (last (pathname-directory path))))) subdir-files)
+
+       (setq subdir-files (append subdir-files (get-dir-files-rec subdir)))))))
+
 (defun get-files-in-directories (dir)
-  (apply
-   #'append
-   
-   (append
-    (mapcar
-     
-     (lambda (dir-list)
-       (mapcar
-        
-        (lambda (name)
-          (namestring (pathname-name name)))
-        dir-list))
-     
-     (setq pass-entries
-           
-           (mapcar
-            #'uiop:directory-files
-            (filter-valid-names
-             
-             (mapcar
-              #'namestring
-              (uiop:subdirectories dir))))))
-    
-     (filter-valid-names
-      (mapcar #'pathname-name
-              (uiop:directory-files dir))))))
+  (mapcar
+   (lambda (path)
+     (apply
+      #'format
+      (append
+       (list 'nil "~{~A~^, ~}")
+       (let ((path-dirs
+               (cdr
+                (member (car
+                         (last (pathname-directory dir)))
+                        (pathname-directory path) :test #'string=))))
+         (if (listp path-dirs)
+             path-dirs
+             (list path-dirs)))
+       (list (pathname-name path)))))
+   (get-dir-files-rec dir)))
 
 (defun get-password-files ()
   (get-files-in-directories "~/.password-store/"))
